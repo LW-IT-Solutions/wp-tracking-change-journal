@@ -1,0 +1,114 @@
+{
+  "gtm": {
+    "label": "Google Tag Manager",
+    "rules": [
+      { "in": "src", "re": "gtm\\.js\\?(?:[^\"'\\s]*&)?id=(GTM-[A-Z0-9]{4,12})", "role": "loader" },
+      { "in": "inline", "requires": "gtm.js", "re": "['\"](GTM-[A-Z0-9]{4,12})['\"]\\s*\\)", "role": "loader", "host": "//([a-z0-9.-]+)/[^'\"]*gtm\\.js" },
+      { "in": "iframe", "re": "ns\\.html\\?(?:[^\"'\\s]*&)?id=(GTM-[A-Z0-9]{4,12})", "role": "noscript" }
+    ]
+  },
+  "ga4": {
+    "label": "Google Analytics 4",
+    "rules": [
+      { "in": "src", "re": "gtag/js\\?(?:[^\"'\\s]*&)?id=(G-[A-Z0-9]{4,14})", "role": "loader" },
+      { "in": "inline", "re": "gtag\\(\\s*['\"]config['\"]\\s*,\\s*['\"](G-[A-Z0-9]{4,14})['\"]", "role": "config" },
+      { "in": "img", "re": "google-analytics\\.com/g/collect\\?(?:[^\"'\\s]*&)?tid=(G-[A-Z0-9]{4,14})", "role": "noscript" },
+      { "in": "inline", "requires": "pysOptions", "re": "\"ga\":\\{\"trackingIds\":\\[((?:\"G-[A-Z0-9]{4,14}\",?)+)\\]", "list": true, "role": "config" }
+    ]
+  },
+  "gads": {
+    "label": "Google Ads",
+    "rules": [
+      { "in": "src", "re": "gtag/js\\?(?:[^\"'\\s]*&)?id=(AW-[0-9]{6,12})", "role": "loader" },
+      { "in": "inline", "re": "gtag\\(\\s*['\"]config['\"]\\s*,\\s*['\"](AW-[0-9]{6,12})['\"]", "role": "config" }
+    ]
+  },
+  "gtag": {
+    "label": "Google tag",
+    "rules": [
+      { "in": "src", "re": "gtag/js\\?(?:[^\"'\\s]*&)?id=(GT-[A-Z0-9]{4,14})", "role": "loader" },
+      { "in": "inline", "re": "gtag\\(\\s*['\"]config['\"]\\s*,\\s*['\"](GT-[A-Z0-9]{4,14})['\"]", "role": "config" }
+    ]
+  },
+  "ua": {
+    "label": "Universal Analytics",
+    "rules": [
+      { "in": "src", "re": "gtag/js\\?(?:[^\"'\\s]*&)?id=(UA-[0-9]{4,10}-[0-9]{1,4})", "role": "loader" },
+      { "in": "inline", "re": "gtag\\(\\s*['\"]config['\"]\\s*,\\s*['\"](UA-[0-9]{4,10}-[0-9]{1,4})['\"]", "role": "config" },
+      { "in": "inline", "re": "ga\\(\\s*['\"]create['\"]\\s*,\\s*['\"](UA-[0-9]{4,10}-[0-9]{1,4})['\"]", "role": "config" }
+    ]
+  },
+  "meta": {
+    "label": "Meta Pixel",
+    "rules": [
+      { "in": "inline", "re": "fbq\\(\\s*['\"]init['\"]\\s*,\\s*['\"]([0-9]{6,20})['\"]", "role": "config" },
+      { "in": "inline", "requires": "pysOptions", "re": "\"facebook\":\\{\"pixelIds\":\\[((?:\"[0-9]{6,20}\",?)+)\\]", "list": true, "role": "config" },
+      { "in": "img", "re": "facebook\\.com/tr/?\\?(?:[^\"'\\s]*&(?:amp;)?)?id=([0-9]{6,20})", "role": "noscript" }
+    ]
+  },
+  "clarity": {
+    "label": "Microsoft Clarity",
+    "rules": [
+      { "in": "inline", "re": "['\"]clarity['\"]\\s*,\\s*['\"]script['\"]\\s*,\\s*['\"]([a-z0-9]{6,14})['\"]", "role": "loader" },
+      { "in": "src", "re": "clarity\\.ms/tag/([a-z0-9]{6,14})", "role": "loader" }
+    ]
+  },
+  "uet": {
+    "label": "Microsoft Advertising UET",
+    "rules": [
+      { "in": "inline", "requires": "bat.bing.com", "re": "\\bti\\s*:\\s*['\"]?([0-9]{5,12})['\"]?", "role": "config" },
+      { "in": "img", "re": "bat\\.bing\\.com/action/0\\?(?:[^\"'\\s]*&(?:amp;)?)?ti=([0-9]{5,12})", "role": "noscript" }
+    ]
+  },
+  "hotjar": {
+    "label": "Hotjar",
+    "rules": [
+      { "in": "inline", "re": "\\bhjid\\s*:\\s*([0-9]{4,12})", "role": "loader" },
+      { "in": "src", "re": "hotjar-([0-9]{4,12})\\.js", "role": "loader" }
+    ]
+  },
+  "linkedin": {
+    "label": "LinkedIn Insight Tag",
+    "rules": [
+      { "in": "inline", "re": "_linkedin_partner_id\\s*=\\s*['\"]?([0-9]{3,12})", "role": "config" },
+      { "in": "img", "re": "px\\.ads\\.linkedin\\.com/collect/?\\?(?:[^\"'\\s]*&(?:amp;)?)?pid=([0-9]{3,12})", "role": "noscript" }
+    ]
+  },
+  "tiktok": {
+    "label": "TikTok Pixel",
+    "rules": [
+      { "in": "inline", "re": "ttq\\.load\\(\\s*['\"]([A-Z0-9]{10,30})['\"]", "role": "config" }
+    ]
+  },
+  "pinterest": {
+    "label": "Pinterest Tag",
+    "rules": [
+      { "in": "inline", "re": "pintrk\\(\\s*['\"]load['\"]\\s*,\\s*['\"]([0-9]{8,16})['\"]", "role": "config" }
+    ]
+  },
+  "matomo": {
+    "label": "Matomo",
+    "rules": [
+      { "in": "inline", "re": "\\[\\s*['\"]setSiteId['\"]\\s*,\\s*['\"]?([0-9]{1,6})['\"]?\\s*\\]", "role": "config", "host": "\\bu\\s*=\\s*['\"](?:https?:)?//([a-z0-9.-]+)" }
+    ]
+  },
+  "plausible": {
+    "label": "Plausible",
+    "rules": [
+      { "in": "src", "re": "/js/(pa-[A-Za-z0-9_-]{6,40})\\.js", "role": "loader" },
+      { "in": "src", "re": "/js/(?:plausible|script)(?:\\.[a-z-]+)*\\.js", "id_attr": "data-domain", "role": "loader" }
+    ]
+  },
+  "fathom": {
+    "label": "Fathom",
+    "rules": [
+      { "in": "src", "re": "/script\\.js", "id_attr": "data-site", "role": "loader" }
+    ]
+  },
+  "umami": {
+    "label": "Umami",
+    "rules": [
+      { "in": "src", "re": "\\.js", "id_attr": "data-website-id", "role": "loader" }
+    ]
+  }
+}
