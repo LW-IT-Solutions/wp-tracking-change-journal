@@ -1,4 +1,4 @@
-/* Tracking Change Journal: CSV export of the journal and a confirmation dialog before deleting it. */
+/* Tracking Change Journal: CSV export, busy state of the check, page counter, journal filter and a confirmation dialog before deleting the journal. */
 (function () {
     'use strict';
     if (typeof TRCJ === 'undefined') {
@@ -75,6 +75,65 @@
         document.body.appendChild(dialog);
         dialog.showModal();
         ok.focus();
+    }
+
+    function fmt(text) {
+        const args = Array.prototype.slice.call(arguments, 1);
+        let next = 0;
+        return text.replace(/%(?:(\d)\$)?[sd]/g, function (_, n) {
+            return String(args[n ? n - 1 : next++]);
+        });
+    }
+
+    // "Check now" can take up to a minute: show that it runs and prevent a second submit.
+    const check = document.getElementById('trcj-check');
+    if (check) {
+        check.addEventListener('submit', function (event) {
+            const submit = document.getElementById('trcj-check-button');
+            if (submit.getAttribute('aria-busy') === 'true') {
+                event.preventDefault();
+                return;
+            }
+            submit.setAttribute('aria-busy', 'true');
+            submit.classList.add('trcj-busy');
+            submit.querySelector('.trcj-check-label').textContent = TRCJ.text.checking;
+            document.getElementById('trcj-spinner').classList.add('is-active');
+        });
+    }
+
+    // Number of entered pages next to the page list.
+    const pages = document.getElementById('trcj-pages');
+    const counter = document.getElementById('trcj-pages-count');
+    if (pages && counter) {
+        const count = function () {
+            const n = pages.value.split(/\r?\n/).filter(function (line) {
+                return line.trim() !== '';
+            }).length;
+            counter.textContent = fmt(TRCJ.text.lines, n, TRCJ.text.max);
+            counter.classList.toggle('trcj-over', n > TRCJ.text.max);
+        };
+        pages.addEventListener('input', count);
+        count();
+    }
+
+    // Journal: show only the entries with tracking changes.
+    const only = document.getElementById('trcj-only-changed');
+    const list = document.getElementById('trcj-journal');
+    const info = document.getElementById('trcj-journal-count');
+    if (only && list) {
+        const items = list.querySelectorAll(':scope > li');
+        const changed = list.querySelectorAll(':scope > li.trcj-changed').length;
+        if (changed && changed < items.length) {
+            only.hidden = false;
+        }
+        only.addEventListener('click', function () {
+            const on = only.getAttribute('aria-pressed') !== 'true';
+            only.setAttribute('aria-pressed', on ? 'true' : 'false');
+            Array.prototype.forEach.call(items, function (item) {
+                item.hidden = on && !item.classList.contains('trcj-changed');
+            });
+            info.textContent = on ? fmt(TRCJ.text.shown, changed, items.length) : '';
+        });
     }
 
     const clear = document.getElementById('trcj-clear');

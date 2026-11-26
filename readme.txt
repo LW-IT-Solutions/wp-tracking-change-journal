@@ -4,7 +4,7 @@ Tags: google tag manager, analytics, consent mode, tracking, monitoring
 Requires at least: 6.5
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,15 @@ All options, scheduled checks and short-lived screen notices of the plugin. Noth
 2. Tools > Tracking Journal: the tags each checked page loads now, how they are included, and the consent mode defaults.
 
 == Changelog ==
+
+= 0.2.0 =
+* Overview with key figures of the last check (pages, tags, tags waiting for consent, duplicates) and a bar chart of the journal entries of the last 30 days.
+* Checked pages appear as cards with an HTTP status badge; every tag has a state badge, and how it is included is shown as labels.
+* Consent mode defaults are shown value by value, granted and denied in colour.
+* The journal is a timeline with an icon for each kind of check and of change, marks entries with tracking changes and can show only those.
+* "Check now" shows that the check runs; the page list counts the entered pages.
+* Deleting the journal sits in its own box with an explanation; empty states explain what comes next; on small screens each table cell carries its column name.
+* No change to what is checked, stored or sent.
 
 = 0.1.1 =
 * Checks follow redirects only within this site. A redirect to another host is recorded with its status and not requested.
