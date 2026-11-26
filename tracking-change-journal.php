@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tracking Change Journal
  * Description: Keeps a journal of the tracking tags and consent mode defaults in your public pages and records what changed after plugin, theme and core updates.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: LW IT Solutions
@@ -81,8 +81,8 @@ function trcj_admin_assets( $hook ) {
 	if ( 'tools_page_tracking-change-journal' !== $hook ) {
 		return;
 	}
-	wp_enqueue_style( 'trcj-admin', plugins_url( 'assets/admin.css', __FILE__ ), array(), '0.1.0' );
-	wp_enqueue_script( 'trcj-admin', plugins_url( 'assets/admin.js', __FILE__ ), array(), '0.1.0', true );
+	wp_enqueue_style( 'trcj-admin', plugins_url( 'assets/admin.css', __FILE__ ), array(), '0.1.1' );
+	wp_enqueue_script( 'trcj-admin', plugins_url( 'assets/admin.js', __FILE__ ), array(), '0.1.1', true );
 	$rows = array();
 	foreach ( TRCJ_Journal::journal() as $entry ) {
 		$time = wp_date( 'Y-m-d H:i', $entry['time'] );
@@ -104,7 +104,12 @@ function trcj_admin_assets( $hook ) {
 		array(
 			'head'    => array( __( 'Time', 'tracking-change-journal' ), __( 'Check', 'tracking-change-journal' ), __( 'Page', 'tracking-change-journal' ), __( 'Change', 'tracking-change-journal' ) ),
 			'rows'    => $rows,
-			'confirm' => __( 'Delete all journal entries?', 'tracking-change-journal' ),
+			'dialog'  => array(
+				'title'  => __( 'Delete journal', 'tracking-change-journal' ),
+				'text'   => __( 'Delete all journal entries?', 'tracking-change-journal' ),
+				'ok'     => __( 'Delete journal', 'tracking-change-journal' ),
+				'cancel' => __( 'Cancel', 'tracking-change-journal' ),
+			),
 		)
 	);
 }
@@ -291,7 +296,7 @@ function trcj_admin_page() {
 					<input type="checkbox" name="trcj_email" value="1" <?php checked( $settings['email'] ); ?>>
 					<?php
 					/* translators: %s: email address. */
-					echo esc_html( sprintf( __( 'Send an email to %s when tracking tags or consent defaults change.', 'tracking-change-journal' ), get_option( 'admin_email' ) ) );
+					echo esc_html( sprintf( __( 'Send an email to %s when a check finds a change on a checked page: tracking tags, consent defaults, or a page that stops loading or answers with another HTTP status.', 'tracking-change-journal' ), get_option( 'admin_email' ) ) );
 					?>
 				</label>
 			</p>
@@ -308,7 +313,7 @@ function trcj_admin_page() {
 
 		<h2><?php esc_html_e( 'Limits', 'tracking-change-journal' ); ?></h2>
 		<p><?php esc_html_e( 'The check reads the HTML your server delivers. Tags that a Tag Manager container or another script adds later in the browser are not visible; for a container, its ID and how it is loaded are recorded. "Waits for consent or a loader script" means the code is in the page but marked so that it does not run on load, as consent tools and script delay features do.', 'tracking-change-journal' ); ?></p>
-		<p><?php esc_html_e( 'Only tag names, IDs, loader host names, consent defaults, HTTP status codes and plugin, theme and WordPress versions are stored. No page content, cookies or visitor data. The plugin requests pages of this site only.', 'tracking-change-journal' ); ?></p>
+		<p><?php esc_html_e( 'Only tag names, IDs, loader host names, consent defaults, HTTP status codes and plugin, theme and WordPress versions are stored. No page content, cookies or visitor data. The plugin requests pages of this site only and follows redirects only within this site.', 'tracking-change-journal' ); ?></p>
 	</div>
 	<?php
 }
@@ -389,7 +394,8 @@ function trcj_handle_save() {
 	$text   = isset( $_POST['trcj_pages'] ) && is_string( $_POST['trcj_pages'] ) ? sanitize_textarea_field( wp_unslash( $_POST['trcj_pages'] ) ) : '';
 	$before = TRCJ_Journal::settings();
 	list( $pages, $rejected ) = TRCJ_Journal::clean_paths( $text );
-	TRCJ_Journal::save_settings( $pages, ! empty( $_POST['trcj_email'] ) );
+	$email = isset( $_POST['trcj_email'] ) && is_string( $_POST['trcj_email'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['trcj_email'] ) );
+	TRCJ_Journal::save_settings( $pages, $email );
 	if ( TRCJ_Journal::settings()['pages'] !== $before['pages'] ) {
 		TRCJ_Journal::check( 'settings' );
 	}

@@ -260,21 +260,36 @@ class TRCJ_Journal {
 			'consent' => array(),
 		);
 		// The extra query argument passes page caches, so the check sees what WordPress renders now.
-		$url      = add_query_arg( 'trcj-check', time(), self::origin() . $path );
-		$response = wp_safe_remote_get(
-			$url,
-			array(
-				'timeout'             => 15,
-				'redirection'         => 3,
-				'limit_response_size' => 3 * MB_IN_BYTES,
-				'headers'             => array( 'Cache-Control' => 'no-cache' ),
-			)
-		);
-		if ( is_wp_error( $response ) ) {
-			$page['error'] = substr( sanitize_text_field( $response->get_error_message() ), 0, 200 );
-			return $page;
+		$url = add_query_arg( 'trcj-check', time(), self::origin() . $path );
+		// Redirects are followed here, and only to addresses on this site. A redirect to another host is not
+		// requested; its status is recorded instead.
+		for ( $hop = 0; $hop <= 3; $hop++ ) {
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'             => 15,
+					'redirection'         => 0,
+					'limit_response_size' => 3 * MB_IN_BYTES,
+					'headers'             => array( 'Cache-Control' => 'no-cache' ),
+				)
+			);
+			if ( is_wp_error( $response ) ) {
+				$page['error'] = substr( sanitize_text_field( $response->get_error_message() ), 0, 200 );
+				return $page;
+			}
+			$status   = (int) wp_remote_retrieve_response_code( $response );
+			$location = wp_remote_retrieve_header( $response, 'location' );
+			$location = is_array( $location ) ? (string) end( $location ) : (string) $location;
+			if ( $status < 300 || $status >= 400 || '' === $location || $hop >= 3 ) {
+				break;
+			}
+			$next = esc_url_raw( WP_Http::make_absolute_url( $location, $url ), array( 'http', 'https' ) );
+			if ( '' === $next || '' === self::path_of( $next ) ) {
+				break;
+			}
+			$url = $next;
 		}
-		$page['status'] = (int) wp_remote_retrieve_response_code( $response );
+		$page['status'] = $status;
 		$type           = (string) wp_remote_retrieve_header( $response, 'content-type' );
 		if ( self::ok( $page['status'] ) && ( '' === $type || false !== stripos( $type, 'html' ) ) ) {
 			$page = array_merge( $page, TRCJ_Detector::scan( wp_remote_retrieve_body( $response ) ) );
@@ -360,6 +375,7 @@ class TRCJ_Journal {
 			array_unshift( $journal, $entry );
 			update_option( self::JOURNAL, array_slice( $journal, 0, self::MAX_ENTRIES ), false );
 		}
+		// Any change on a checked page sends the email: tags, consent defaults, HTTP status or a failed load.
 		if ( $entry['changed'] && $settings['email'] ) {
 			self::mail( $entry );
 		}
@@ -758,7 +774,7 @@ class TRCJ_Journal {
 	}
 
 	/**
-	 * Tell the site administrator about tracking changes.
+	 * Tell the site administrator about changes on the checked pages.
 	 *
 	 * @param array $entry Journal entry.
 	 */
@@ -776,8 +792,8 @@ class TRCJ_Journal {
 		}
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name. */
-		$subject = sprintf( __( '[%s] Tracking changed', 'tracking-change-journal' ), $site );
-		$body    = __( 'Tracking Change Journal found changes in the tracking tags of your public pages.', 'tracking-change-journal' ) . "\n\n"
+		$subject = sprintf( __( '[%s] Tracking Change Journal: changes found', 'tracking-change-journal' ), $site );
+		$body    = __( 'Tracking Change Journal found changes on the checked pages of your site: in tracking tags, consent defaults or the answer of a page.', 'tracking-change-journal' ) . "\n\n"
 			. self::reason_label( $entry['reason'] ) . "\n" . implode( "\n", $lines ) . "\n\n"
 			. admin_url( 'tools.php?page=tracking-change-journal' ) . "\n";
 		wp_mail( get_option( 'admin_email' ), $subject, $body );

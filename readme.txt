@@ -4,7 +4,7 @@ Tags: google tag manager, analytics, consent mode, tracking, monitoring
 Requires at least: 6.5
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,13 +27,15 @@ previous check and writes a journal under Tools > Tracking Journal:
 * **Context:** each entry lists the plugins, themes and WordPress versions that changed since the previous check, so a removed tag sits next to the update that removed it.
 
 Checks after a change are always written to the journal, also when nothing changed, as a record that the update left
-tracking intact. Daily checks are written only when something changed. The journal can be exported as CSV, and an
-optional email tells the site administrator about tracking changes.
+tracking intact. Daily checks are written only when something changed. The journal can be exported as CSV. An
+optional email tells the site administrator when a check finds a change on a checked page: in tracking tags or
+consent defaults, or a page that stops loading or answers with another HTTP status.
 
 = Privacy =
 
-The plugin loads pages of this site only, without cookies, the way a first-time visitor receives them. It stores tag
-names, IDs, loader host names, consent defaults, HTTP status codes and the versions of plugins, themes and WordPress.
+The plugin loads pages of this site only, without cookies, the way a first-time visitor receives them, and follows
+redirects only within this site. It stores tag names, IDs, loader host names, consent defaults, HTTP status codes and
+the versions of plugins, themes and WordPress.
 It stores no page content and no visitor data, sets no cookies and contacts no external service. Uninstalling removes
 all stored data.
 
@@ -41,6 +43,7 @@ all stored data.
 
 * The check reads the HTML the server delivers. Tags that a Tag Manager container or another script adds later in the browser are not visible; for a container, its ID and how it is loaded are recorded.
 * Pages behind a login, and content that differs per visitor, are checked as a visitor without cookies sees them.
+* A page that redirects to another host is not loaded from there; the journal records the redirect status (for example 301) instead.
 * Up to ten pages per site and 200 journal entries.
 * Each page is read up to 3 MB. A check that takes longer than a minute keeps the previous result for the remaining pages and says so in the journal. If the site cannot load its own home page (some hosts block such loopback requests), the journal shows the error.
 
@@ -70,7 +73,7 @@ directly is recorded.
 
 = What does uninstalling remove? =
 
-All options and scheduled checks of the plugin. Nothing else is stored.
+All options, scheduled checks and short-lived screen notices of the plugin. Nothing else is stored.
 
 == Screenshots ==
 
@@ -78,6 +81,11 @@ All options and scheduled checks of the plugin. Nothing else is stored.
 2. Tools > Tracking Journal: the tags each checked page loads now, how they are included, and the consent mode defaults.
 
 == Changelog ==
+
+= 0.1.1 =
+* Checks follow redirects only within this site. A redirect to another host is recorded with its status and not requested.
+* The email setting and the email text name every change that triggers the email. Deleting the journal asks for confirmation in a dialog of the page instead of a browser prompt.
+* Form input is sanitized where it is read. Uninstalling also removes the short-lived screen notices.
 
 = 0.1.0 =
 * First version: tag and consent default detection, checks after updates and daily, journal with component changes, CSV export, optional email.
