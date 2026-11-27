@@ -87,7 +87,8 @@ h3.trcj-path { margin: 0; font-size: 14px; }
 .trcj-journal > li.trcj-changed { border-color: #c5d9ed; box-shadow: inset 3px 0 0 var(--trcj-accent); }
 .trcj-dot { position: absolute; left: -31px; top: 9px; width: 24px; height: 24px; font-size: 14px; line-height: 22px; text-align: center; border-radius: 50%; background: #fff; color: #50575e; border: 1px solid #c3c4c7; box-sizing: border-box; box-shadow: 0 0 0 3px #f0f0f1; }
 .trcj-changed .trcj-dot { background: var(--trcj-accent); border-color: var(--trcj-accent); color: #fff; }
-.trcj-when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 4px; }
+.trcj-when { display: flex; align-items: flex-start; gap: 4px 10px; margin-bottom: 4px; }
+.trcj-when-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex: 1 1 auto; min-width: 0; min-height: 22px; }
 .trcj-reason { color: var(--trcj-muted); }
 .trcj-flag { padding: 0 8px; border-radius: 999px; background: #f0f6fc; color: #135e96; border: 1px solid #c5d9ed; font-size: 12px; font-weight: 600; line-height: 20px; }
 .trcj-journal ul { list-style: none; margin: 4px 0 6px; padding: 0; }
@@ -224,7 +225,7 @@ h3.trcj-path { margin: 0; font-size: 14px; }
 .trcj-kind-n { min-width: 16px; padding: 0 5px; border-radius: 9px; background: rgba(0, 0, 0, .08); font-size: 11px; line-height: 16px; text-align: center; }
 .trcj-kind[aria-pressed="true"] .trcj-kind-n { background: rgba(255, 255, 255, .25); }
 mark.trcj-hit { padding: 0 1px; border-radius: 2px; background: #fcf0a8; color: inherit; box-shadow: 0 0 0 1px #e8d36b; }
-.trcj-wrap .trcj-copy { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; font-size: 12px; text-decoration: none; }
+.trcj-wrap .trcj-copy { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; margin-left: auto; font-size: 12px; text-decoration: none; white-space: nowrap; }
 .trcj-copy .dashicons { width: 16px; height: 16px; font-size: 16px; }
 .trcj-copy.is-done { color: var(--trcj-ok); }
 .trcj-copy.is-done .dashicons::before { content: "\f147"; }

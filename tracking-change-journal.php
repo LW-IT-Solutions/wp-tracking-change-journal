@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tracking Change Journal
  * Description: Keeps a journal of the tracking tags and consent mode defaults in your public pages and records what changed after plugin, theme and core updates.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: LW IT Solutions
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 define( 'TRCJ_FILE', __FILE__ );
-define( 'TRCJ_VERSION', '0.3.0' );
+define( 'TRCJ_VERSION', '0.3.1' );
 require_once __DIR__ . '/includes/class-trcj-detector.php';
 require_once __DIR__ . '/includes/class-trcj-journal.php';
 
@@ -361,11 +361,13 @@ function trcj_admin_page() {
 					<li class="<?php echo esc_attr( $entry['changed'] ? 'trcj-changed' : 'trcj-unchanged' ); ?>" data-day="<?php echo esc_attr( wp_date( 'Y-m-d', (int) $entry['time'] ) ); ?>">
 						<span class="trcj-dot dashicons dashicons-<?php echo esc_attr( trcj_reason_icon( $entry['reason'] ) ); ?>" aria-hidden="true"></span>
 						<div class="trcj-when">
-							<strong><?php echo esc_html( trcj_time( $entry['time'] ) ); ?></strong>
-							<span class="trcj-reason"><?php echo esc_html( TRCJ_Journal::reason_label( $entry['reason'] ) ); ?></span>
-							<?php if ( $entry['changed'] ) : ?>
-								<span class="trcj-flag"><?php esc_html_e( 'Tracking changed', 'tracking-change-journal' ); ?></span>
-							<?php endif; ?>
+							<span class="trcj-when-main">
+								<strong><?php echo esc_html( trcj_time( $entry['time'] ) ); ?></strong>
+								<span class="trcj-reason"><?php echo esc_html( TRCJ_Journal::reason_label( $entry['reason'] ) ); ?></span>
+								<?php if ( $entry['changed'] ) : ?>
+									<span class="trcj-flag"><?php esc_html_e( 'Tracking changed', 'tracking-change-journal' ); ?></span>
+								<?php endif; ?>
+							</span>
 							<button type="button" class="button-link trcj-copy" hidden><span class="dashicons dashicons-clipboard" aria-hidden="true"></span><span class="trcj-copy-label"><?php esc_html_e( 'Copy as text', 'tracking-change-journal' ); ?></span></button>
 						</div>
 						<?php if ( $entry['components'] ) : ?>

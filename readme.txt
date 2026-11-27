@@ -4,7 +4,7 @@ Tags: google tag manager, analytics, consent mode, tracking, monitoring
 Requires at least: 6.5
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,9 @@ All options, scheduled checks and short-lived screen notices of the plugin. Noth
 2. Tools > Tracking Journal: the tags each checked page loads now, how they are included, and the consent mode defaults.
 
 == Changelog ==
+
+= 0.3.1 =
+* Journal: "Copy as text" always sits at the right end of the entry heading, also in entries marked "Tracking changed".
 
 = 0.3.0 =
 * New table "Tags per page": one row per tag and one column per checked page, so a page where a tag is missing, waits or runs twice stands out.
