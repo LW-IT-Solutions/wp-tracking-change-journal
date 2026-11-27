@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tracking Change Journal
  * Description: Keeps a journal of the tracking tags and consent mode defaults in your public pages and records what changed after plugin, theme and core updates.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: LW IT Solutions
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 define( 'TRCJ_FILE', __FILE__ );
-define( 'TRCJ_VERSION', '0.2.0' );
+define( 'TRCJ_VERSION', '0.3.0' );
 require_once __DIR__ . '/includes/class-trcj-detector.php';
 require_once __DIR__ . '/includes/class-trcj-journal.php';
 
@@ -112,6 +112,13 @@ function trcj_admin_assets( $hook ) {
 				/* translators: 1: number of entries shown, 2: number of entries. */
 				'shown'    => __( 'Showing %1$d of %2$d entries.', 'tracking-change-journal' ),
 				'max'      => TRCJ_Journal::MAX_PAGES,
+				/* translators: %d: seconds. */
+				'elapsed'  => __( '%d s', 'tracking-change-journal' ),
+				'none'     => __( 'No entry matches the filter.', 'tracking-change-journal' ),
+				/* translators: %s: date. */
+				'day'      => __( 'Day: %s', 'tracking-change-journal' ),
+				'copied'   => __( 'Copied', 'tracking-change-journal' ),
+				'copy'     => __( 'Copy as text', 'tracking-change-journal' ),
 			),
 			'dialog'  => array(
 				'title'  => __( 'Delete journal', 'tracking-change-journal' ),
@@ -180,6 +187,19 @@ function trcj_admin_page() {
 				<button type="submit" class="button button-primary" id="trcj-check-button"><span class="dashicons dashicons-update" aria-hidden="true"></span> <span class="trcj-check-label"><?php esc_html_e( 'Check now', 'tracking-change-journal' ); ?></span></button>
 				<span class="spinner" id="trcj-spinner"></span>
 			</form>
+			<div class="trcj-running" id="trcj-running" hidden>
+				<div class="trcj-running-head">
+					<strong><?php esc_html_e( 'Loading the pages without cookies and reading their tags', 'tracking-change-journal' ); ?></strong>
+					<span class="trcj-elapsed" id="trcj-elapsed" aria-hidden="true"></span>
+				</div>
+				<div class="trcj-running-bar" aria-hidden="true"><span></span></div>
+				<ul class="trcj-running-pages">
+					<?php foreach ( $settings['pages'] as $path ) : ?>
+						<li><span class="trcj-running-dot" aria-hidden="true"></span><code><?php echo esc_html( $path ); ?></code></li>
+					<?php endforeach; ?>
+				</ul>
+				<p class="trcj-muted"><?php esc_html_e( 'This can take up to a minute. The page reloads with the result.', 'tracking-change-journal' ); ?></p>
+			</div>
 			<ul class="trcj-schedule">
 				<?php if ( $state['time'] ) : ?>
 					<li title="<?php echo esc_attr( trcj_time( $state['time'] ) ); ?>"><span class="dashicons dashicons-clock" aria-hidden="true"></span>
@@ -215,6 +235,7 @@ function trcj_admin_page() {
 		</div>
 
 		<?php trcj_overview( $state, $journal ); ?>
+		<?php trcj_matrix( $state ); ?>
 
 		<h2 class="trcj-h"><?php esc_html_e( 'Tags now', 'tracking-change-journal' ); ?></h2>
 		<?php if ( ! $state['pages'] ) : ?>
@@ -313,10 +334,31 @@ function trcj_admin_page() {
 				<p><?php esc_html_e( 'Entries appear after checks: after updates, plugin and theme changes, and when a daily check finds a change.', 'tracking-change-journal' ); ?></p>
 			</div>
 		<?php else : ?>
+			<div class="trcj-jtools" id="trcj-jtools" hidden>
+				<span class="trcj-search-field">
+					<label for="trcj-search" class="screen-reader-text"><?php esc_html_e( 'Search the journal', 'tracking-change-journal' ); ?></label>
+					<span class="dashicons dashicons-search" aria-hidden="true"></span>
+					<input type="search" id="trcj-search" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e( 'Search the journal: tag, ID, plugin …', 'tracking-change-journal' ); ?>" aria-describedby="trcj-search-key">
+					<kbd id="trcj-search-key" title="<?php esc_attr_e( 'Press / to search', 'tracking-change-journal' ); ?>"><span aria-hidden="true">/</span><span class="screen-reader-text"><?php esc_html_e( 'Press / to search', 'tracking-change-journal' ); ?></span></kbd>
+				</span>
+				<span class="trcj-kinds" role="group" aria-label="<?php esc_attr_e( 'Kind of change', 'tracking-change-journal' ); ?>">
+					<?php
+					foreach ( array(
+						'added'   => __( 'Added', 'tracking-change-journal' ),
+						'removed' => __( 'Removed', 'tracking-change-journal' ),
+						'consent' => __( 'Consent', 'tracking-change-journal' ),
+						'bad'     => __( 'Problems', 'tracking-change-journal' ),
+						'parts'   => __( 'Plugins and themes', 'tracking-change-journal' ),
+					) as $kind_key => $kind_label ) :
+						?>
+						<button type="button" class="trcj-kind trcj-kind-<?php echo esc_attr( $kind_key ); ?>" data-kind="<?php echo esc_attr( $kind_key ); ?>" aria-pressed="false" hidden><?php echo esc_html( $kind_label ); ?> <span class="trcj-kind-n"></span></button>
+					<?php endforeach; ?>
+				</span>
+			</div>
 			<p id="trcj-journal-count" class="trcj-muted" aria-live="polite"></p>
 			<ol class="trcj-journal" id="trcj-journal">
 				<?php foreach ( array_slice( $journal, 0, 50 ) as $entry ) : ?>
-					<li class="<?php echo esc_attr( $entry['changed'] ? 'trcj-changed' : 'trcj-unchanged' ); ?>">
+					<li class="<?php echo esc_attr( $entry['changed'] ? 'trcj-changed' : 'trcj-unchanged' ); ?>" data-day="<?php echo esc_attr( wp_date( 'Y-m-d', (int) $entry['time'] ) ); ?>">
 						<span class="trcj-dot dashicons dashicons-<?php echo esc_attr( trcj_reason_icon( $entry['reason'] ) ); ?>" aria-hidden="true"></span>
 						<div class="trcj-when">
 							<strong><?php echo esc_html( trcj_time( $entry['time'] ) ); ?></strong>
@@ -324,6 +366,7 @@ function trcj_admin_page() {
 							<?php if ( $entry['changed'] ) : ?>
 								<span class="trcj-flag"><?php esc_html_e( 'Tracking changed', 'tracking-change-journal' ); ?></span>
 							<?php endif; ?>
+							<button type="button" class="button-link trcj-copy" hidden><span class="dashicons dashicons-clipboard" aria-hidden="true"></span><span class="trcj-copy-label"><?php esc_html_e( 'Copy as text', 'tracking-change-journal' ); ?></span></button>
 						</div>
 						<?php if ( $entry['components'] ) : ?>
 							<ul class="trcj-components">
@@ -440,7 +483,7 @@ function trcj_overview( $state, $journal ) {
 		<div class="trcj-tiles">
 			<?php foreach ( $tiles as $tile ) : ?>
 				<div class="trcj-tile trcj-tile-<?php echo esc_attr( $tile[2] ); ?>">
-					<span class="trcj-tile-n"><?php echo esc_html( number_format_i18n( $tile[0] ) ); ?></span>
+					<span class="trcj-tile-n" data-count="<?php echo esc_attr( $tile[0] ); ?>"><?php echo esc_html( number_format_i18n( $tile[0] ) ); ?></span>
 					<span class="trcj-tile-l"><?php echo esc_html( $tile[1] ); ?></span>
 				</div>
 			<?php endforeach; ?>
@@ -480,11 +523,18 @@ function trcj_activity_chart( $journal ) {
 	$bar     = $step - 4;
 	/* translators: 1: number of checks, 2: number of checks with changes. */
 	$summary = sprintf( __( 'Last 30 days: %1$d journal entries, %2$d with tracking changes.', 'tracking-change-journal' ), $total, $changed );
+	$recent  = array_slice( $bins, -7, 7, true );
+	/* translators: 1: number of checks, 2: number of checks with changes. */
+	$summary7 = sprintf( __( 'Last 7 days: %1$d journal entries, %2$d with tracking changes.', 'tracking-change-journal' ), array_sum( wp_list_pluck( $recent, 0 ) ), array_sum( wp_list_pluck( $recent, 1 ) ) );
 	?>
-	<figure class="trcj-card trcj-chart">
+	<figure class="trcj-card trcj-chart" data-summary30="<?php echo esc_attr( $summary ); ?>" data-summary7="<?php echo esc_attr( $summary7 ); ?>" data-width="<?php echo esc_attr( $width ); ?>" data-step="<?php echo esc_attr( round( $step, 4 ) ); ?>">
 		<figcaption>
 			<strong><?php esc_html_e( 'Journal activity', 'tracking-change-journal' ); ?></strong>
-			<span class="trcj-muted"><?php echo esc_html( $summary ); ?></span>
+			<span class="trcj-muted trcj-chart-summary"><?php echo esc_html( $summary ); ?></span>
+			<span class="trcj-range" role="group" aria-label="<?php esc_attr_e( 'Period', 'tracking-change-journal' ); ?>" hidden>
+				<button type="button" class="trcj-range-button" data-days="7" aria-pressed="false"><?php esc_html_e( '7 days', 'tracking-change-journal' ); ?></button>
+				<button type="button" class="trcj-range-button" data-days="30" aria-pressed="true"><?php esc_html_e( '30 days', 'tracking-change-journal' ); ?></button>
+			</span>
 		</figcaption>
 		<svg viewBox="0 0 <?php echo esc_attr( $width ); ?> <?php echo esc_attr( $height + 18 ); ?>" role="img" aria-label="<?php echo esc_attr( $summary ); ?>" preserveAspectRatio="none" class="trcj-bars">
 			<line x1="0" y1="<?php echo esc_attr( $height ); ?>" x2="<?php echo esc_attr( $width ); ?>" y2="<?php echo esc_attr( $height ); ?>" class="trcj-axis" />
@@ -497,7 +547,7 @@ function trcj_activity_chart( $journal ) {
 				/* translators: 1: date, 2: number of journal entries, 3: number of entries with changes. */
 				$label = sprintf( __( '%1$s: %2$d entries, %3$d with changes', 'tracking-change-journal' ), wp_date( get_option( 'date_format' ), strtotime( $day . ' 12:00:00' ) ), $n[0], $n[1] );
 				?>
-				<g>
+				<g class="trcj-day" data-day="<?php echo esc_attr( $day ); ?>" data-label="<?php echo esc_attr( $label ); ?>" data-date="<?php echo esc_attr( wp_date( get_option( 'date_format' ), strtotime( $day . ' 12:00:00' ) ) ); ?>" data-n="<?php echo esc_attr( $n[0] ); ?>">
 					<title><?php echo esc_html( $label ); ?></title>
 					<rect x="<?php echo esc_attr( $x ); ?>" y="0" width="<?php echo esc_attr( round( $bar, 2 ) ); ?>" height="<?php echo esc_attr( $height ); ?>" class="trcj-hit" />
 					<?php if ( $h_all ) : ?>
@@ -513,8 +563,8 @@ function trcj_activity_chart( $journal ) {
 			?>
 		</svg>
 		<div class="trcj-chart-axis" aria-hidden="true">
-			<span><?php echo esc_html( wp_date( 'j M', time() - ( $days - 1 ) * DAY_IN_SECONDS ) ); ?></span>
-			<span><?php echo esc_html( wp_date( 'j M', time() - 14 * DAY_IN_SECONDS ) ); ?></span>
+			<span data-d30="<?php echo esc_attr( wp_date( 'j M', time() - ( $days - 1 ) * DAY_IN_SECONDS ) ); ?>" data-d7="<?php echo esc_attr( wp_date( 'j M', time() - 6 * DAY_IN_SECONDS ) ); ?>"><?php echo esc_html( wp_date( 'j M', time() - ( $days - 1 ) * DAY_IN_SECONDS ) ); ?></span>
+			<span data-d30="<?php echo esc_attr( wp_date( 'j M', time() - 14 * DAY_IN_SECONDS ) ); ?>" data-d7="<?php echo esc_attr( wp_date( 'j M', time() - 3 * DAY_IN_SECONDS ) ); ?>"><?php echo esc_html( wp_date( 'j M', time() - 14 * DAY_IN_SECONDS ) ); ?></span>
 			<span><?php esc_html_e( 'Today', 'tracking-change-journal' ); ?></span>
 		</div>
 		<ul class="trcj-legend" aria-hidden="true">
@@ -522,6 +572,83 @@ function trcj_activity_chart( $journal ) {
 			<li><span class="trcj-swatch trcj-swatch-all"></span><?php esc_html_e( 'Without tracking changes', 'tracking-change-journal' ); ?></li>
 		</ul>
 	</figure>
+	<?php
+}
+
+/**
+ * Tags per page: one row per tag, one column per checked page, the state in each cell.
+ * A real table, so screen readers can move by row and column; colours repeat the words.
+ *
+ * @param array $state State of the last check.
+ */
+function trcj_matrix( $state ) {
+	$pages = $state['pages'];
+	$tags  = array();
+	foreach ( $pages as $page ) {
+		foreach ( $page['tags'] as $key => $t ) {
+			if ( ! isset( $tags[ $key ] ) ) {
+				$tags[ $key ] = $t;
+			}
+		}
+	}
+	if ( count( $pages ) < 2 || ! $tags ) {
+		return;
+	}
+	$states = array(
+		'ok'   => array( __( 'Active', 'tracking-change-journal' ), 'yes' ),
+		'held' => array( __( 'Waiting', 'tracking-change-journal' ), 'lock' ),
+		'bad'  => array( __( 'More than once', 'tracking-change-journal' ), 'warning' ),
+		'none' => array( __( 'Not on this page', 'tracking-change-journal' ), 'minus' ),
+		'fail' => array( __( 'Page not loaded', 'tracking-change-journal' ), 'dismiss' ),
+	);
+	?>
+	<section class="trcj-card trcj-matrix-card" aria-labelledby="trcj-matrix-title">
+		<h2 class="trcj-matrix-title" id="trcj-matrix-title"><span class="dashicons dashicons-grid-view" aria-hidden="true"></span> <?php esc_html_e( 'Tags per page', 'tracking-change-journal' ); ?></h2>
+		<p class="trcj-muted"><?php esc_html_e( 'A gap in a row shows a page where a tag is missing, for example a checkout without the conversion tag.', 'tracking-change-journal' ); ?></p>
+		<div class="trcj-matrix-scroll" tabindex="0" role="region" aria-labelledby="trcj-matrix-title">
+			<table class="trcj-matrix">
+				<thead>
+					<tr>
+						<th scope="col" class="trcj-matrix-corner"><?php esc_html_e( 'Tag', 'tracking-change-journal' ); ?></th>
+						<?php foreach ( array_keys( $pages ) as $path ) : ?>
+							<th scope="col" class="trcj-matrix-page" title="<?php echo esc_attr( $path ); ?>"><span><?php echo esc_html( $path ); ?></span></th>
+						<?php endforeach; ?>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $tags as $key => $t ) : ?>
+						<tr>
+							<th scope="row"><strong><?php echo esc_html( $t['l'] ); ?></strong> <code><?php echo esc_html( $t['i'] ); ?></code></th>
+							<?php foreach ( $pages as $path => $page ) : ?>
+								<?php
+								if ( ! TRCJ_Journal::ok( $page['status'] ) ) {
+									$cell = 'fail';
+								} elseif ( ! isset( $page['tags'][ $key ] ) ) {
+									$cell = 'none';
+								} elseif ( TRCJ_Detector::duplicate( $page['tags'][ $key ] ) ) {
+									$cell = 'bad';
+								} elseif ( TRCJ_Detector::active( $page['tags'][ $key ] ) ) {
+									$cell = 'ok';
+								} else {
+									$cell = 'held';
+								}
+								?>
+								<td class="trcj-cell trcj-cell-<?php echo esc_attr( $cell ); ?>" title="<?php echo esc_attr( $t['l'] . ' ' . $t['i'] . ' – ' . $path . ': ' . $states[ $cell ][0] ); ?>">
+									<span class="trcj-cell-mark"><span class="dashicons dashicons-<?php echo esc_attr( $states[ $cell ][1] ); ?>" aria-hidden="true"></span></span>
+									<span class="screen-reader-text"><?php echo esc_html( $states[ $cell ][0] ); ?></span>
+								</td>
+							<?php endforeach; ?>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<ul class="trcj-matrix-legend" aria-hidden="true">
+			<?php foreach ( $states as $cell => $info ) : ?>
+				<li><span class="trcj-cell-mark trcj-cell-<?php echo esc_attr( $cell ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $info[1] ); ?>"></span></span><?php echo esc_html( $info[0] ); ?></li>
+			<?php endforeach; ?>
+		</ul>
+	</section>
 	<?php
 }
 
